@@ -1,0 +1,75 @@
+@inherits FBase_Edit;
+
+<div class="modal fade show" tabindex="-1" role="dialog" aria-hidden="true" style="display: block; padding-left: 0px; background-color: rgba(10, 10, 10, .8);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">@Get_Language_Data_Field("Thêm user vào kho")</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="@(() => Modal_Cancel())"></button>
+            </div>
+
+            @((MarkupString)r_strError)
+
+            <EditForm Model="@m_objData">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="row mb-3">
+                                <div class="col-lg-4 col-form-label">
+                                    <label class="form-label">@Get_Language_Data_Field("Mã đăng nhập"):</label>
+                                </div>
+                                <div class="col-lg-8">
+                                    <FControl_Thanh_Vien_Combo m_arrData="@m_arrThanh_Vien" @bind-BindingStringValue="@m_objData.Ma_Dang_Nhap"></FControl_Thanh_Vien_Combo>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-lg-4 col-form-label">
+                                    <label class="form-label">@Get_Language_Data_Field("Kho"):</label>
+                                </div>
+                                <div class="col-lg-8">
+                                    <input class="form-control" value="@m_strTen_Kho" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick="@Save_Data">@Get_Language_Data_Field("Lưu Thay Đổi")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CDM_Kho_User m_objData = new();
+    private List<CSys_Thanh_Vien> m_arrThanh_Vien = new();
+    private string m_strTen_Kho = "";
+
+    [Parameter]
+    public long m_iKho_ID { get; set; }
+
+    protected override void Load_Data()
+    {
+        m_objData = new CDM_Kho_User { Kho_ID = m_iKho_ID };
+        CDM_Kho_Controller v_objCtrKho = new();
+        m_strTen_Kho = v_objCtrKho.FQ_109_Kho_sp_sel_Get_By_ID(m_iKho_ID)?.Ten_Kho ?? "";
+        m_arrThanh_Vien = new CDM_Kho_User_Controller().FQ_110_KU_sp_sel_List_User_Not_Assigned(m_iKho_ID);
+    }
+
+    protected override void Add_Data()
+    {
+        if (m_iKho_ID <= 0)
+            throw new InvalidOperationException("Vui lòng chọn kho.");
+        if (string.IsNullOrWhiteSpace(m_objData.Ma_Dang_Nhap))
+            throw new InvalidOperationException("Mã đăng nhập không được để trống.");
+
+        m_objData.Ma_Dang_Nhap = m_objData.Ma_Dang_Nhap.Trim();
+        m_objData.Kho_ID = m_iKho_ID;
+        m_objData.Last_Updated_By = r_strActive_User_Name;
+        m_objData.Last_Updated_By_Function = r_strActive_Function_Code;
+        m_objData.Auto_ID = r_iAuto_ID = new CDM_Kho_User_Controller().FQ_110_KU_sp_ins_Insert(m_objData);
+        r_strAdd_Key = m_objData.Ma_Dang_Nhap + " - " + m_iKho_ID.ToString();
+    }
+}

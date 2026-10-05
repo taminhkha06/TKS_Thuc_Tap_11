@@ -1,0 +1,98 @@
+@inherits FBase;
+
+<div class="modal fade show" tabindex="-1" role="dialog" aria-hidden="true" style="display: block; padding-left: 0px; background-color: rgba(10, 10, 10, .8);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">@Get_Language_Data_Field(r_iAuto_ID == 0 ? "Thêm mới" : "Hiệu chỉnh")</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="@(() => Modal_Cancel())"></button>
+            </div>
+
+            @((MarkupString)r_strError)
+
+            <EditForm Model="@m_objData">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="row mb-3">
+                                <div class="col-lg-11">
+                                    <label class="form-label">@Get_Language_Data_Field("Mã loại sản phẩm"):</label>
+                                    <input @ref="txtFocus" @bind="m_objData.Ma_LSP" class="form-control" maxlength="50" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="row mb-3">
+                                <div class="col-lg-11">
+                                    <label class="form-label">@Get_Language_Data_Field("Tên loại sản phẩm"):</label>
+                                    <input @bind="m_objData.Ten_LSP" class="form-control" maxlength="200" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-12">
+                            <div class="row mb-3">
+                                <div class="col-lg-11">
+                                    <label class="form-label">@Get_Language_Data_Field("Ghi chú"):</label>
+                                    <textarea @bind="m_objData.Ghi_Chu" class="form-control" rows="3" maxlength="1000"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick="@Save_Data">@Get_Language_Data_Field("Lưu Thay Đổi")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CDM_Loai_San_Pham m_objData = new();
+
+    protected override void Load_Data()
+    {
+        CDM_Loai_San_Pham_Controller v_objCtrData = new();
+        m_objData = v_objCtrData.FQ_106_LSP_sp_sel_Get_By_ID(r_iAuto_ID) ?? new CDM_Loai_San_Pham();
+
+        if (r_iAuto_ID != 0 && m_objData.Auto_ID != 0)
+        {
+            r_bUpdate = true;
+            CDM_Loai_San_Pham v_objClone = new();
+            CUtility.Clone_Entity(m_objData, v_objClone);
+            r_objSource = v_objClone;
+        }
+    }
+
+    protected override void Add_Data()
+    {
+        Validate_Data();
+        m_objData.Last_Updated_By = r_strActive_User_Name;
+        m_objData.Last_Updated_By_Function = r_strActive_Function_Code;
+        m_objData.Auto_ID = r_iAuto_ID = new CDM_Loai_San_Pham_Controller().FQ_106_LSP_sp_ins_Insert(m_objData);
+        r_strAdd_Key = m_objData.Ma_LSP;
+    }
+
+    protected override void Update_Data()
+    {
+        Validate_Data();
+        m_objData.Last_Updated_By = r_strActive_User_Name;
+        m_objData.Last_Updated_By_Function = r_strActive_Function_Code;
+        new CDM_Loai_San_Pham_Controller().FQ_106_LSP_sp_upd_Update(m_objData);
+
+        CDM_Loai_San_Pham v_objClone = new();
+        CUtility.Clone_Entity(m_objData, v_objClone);
+        r_objDes = v_objClone;
+    }
+
+    private void Validate_Data()
+    {
+        m_objData.Ma_LSP = m_objData.Ma_LSP?.Trim();
+        m_objData.Ten_LSP = m_objData.Ten_LSP?.Trim();
+        if (string.IsNullOrWhiteSpace(m_objData.Ma_LSP))
+            throw new InvalidOperationException("Mã loại sản phẩm không được rỗng.");
+        if (string.IsNullOrWhiteSpace(m_objData.Ten_LSP))
+            throw new InvalidOperationException("Tên loại sản phẩm không được rỗng.");
+    }
+}

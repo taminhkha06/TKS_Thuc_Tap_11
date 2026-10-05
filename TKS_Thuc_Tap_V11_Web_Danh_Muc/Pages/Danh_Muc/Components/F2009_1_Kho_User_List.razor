@@ -1,0 +1,128 @@
+@inherits FBase;
+
+<EditForm Model="@r_objFilter">
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label">@Get_Language_Data_Field("Kho"):</label>
+                </div>
+                <div class="col-lg-6">
+                    <TelerikMultiColumnComboBox Data="@m_arrKho"
+                                                @bind-Value="@m_iKho_ID"
+                                                OnChange="@OnKhoChanged"
+                                                ValueField="@nameof(CDM_Kho.Auto_ID)"
+                                                TextField="@nameof(CDM_Kho.Ten_Kho)"
+                                                ScrollMode="@DropDownScrollMode.Virtual"
+                                                Width="100%"
+                                                PageSize="10"
+                                                ItemHeight="35"
+                                                Filterable="true"
+                                                FilterOperator="@StringFilterOperator.Contains"
+                                                ListHeight="260px">
+                        <MultiColumnComboBoxColumns>
+                            <MultiColumnComboBoxColumn Field="@nameof(CDM_Kho.Ten_Kho)" Title="@Get_Language_Data_Field("Tên kho")" Class="k-tks-combobox-item" HeaderClass="k-tks-combobox-header"></MultiColumnComboBoxColumn>
+                        </MultiColumnComboBoxColumns>
+                    </TelerikMultiColumnComboBox>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="hstack flex-wrap gap-2 mb-3 mb-lg-0" style="float: right;">
+                @Layout_Tool_Button()
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+<div style="padding-top: 10px;"></div>
+@((MarkupString)r_strError)
+
+<div class="row">
+    <div class="col-lg-12">
+        @if (r_objChuc_Nang.Is_Have_Add_Permission && m_iKho_ID > 0)
+        {
+            <button type="button" class="btn rounded-pill btn-primary waves-effect waves-light mb-3" @onclick="@(() => Open_Edit(0))">
+                <i class="ri-add-circle-fill align-bottom me-1"></i>
+                @Get_Language_Data_Field("Thêm user vào kho")
+            </button>
+        }
+
+        <TelerikGrid Data="@v_arrData" Height="calc(100vh - 250px)" Resizable="true" Reorderable="true" @ref="@grdData">
+            <GridColumns>
+                <GridColumn Width="50px">
+                    <Template>
+                        @if (r_objChuc_Nang.Is_Have_Delete_Permission)
+                        {
+                            <button class="btn btn-link" title="@Get_Language_Data_Field("Gỡ quyền kho")" @onclick="@(() => Delete_Data((context as CDM_Kho_User).Auto_ID))">
+                                <i class="ri-delete-bin-line align-bottom me-1"></i>
+                            </button>
+                        }
+                    </Template>
+                </GridColumn>
+                @if (CCache_Grid_UI_Global.List_Data_By_Code("2009", "grdData").Count > 0)
+                {
+                    <FCommon_General_Col_Grid m_strFCode="2009" m_strTen_Grid="grdData"></FCommon_General_Col_Grid>
+                }
+                else
+                {
+                    <GridColumn Field="Ma_Dang_Nhap" Title="Mã đăng nhập" Width="200px"></GridColumn>
+                    <GridColumn Field="Ho_Ten" Title="Họ tên" Width="280px"></GridColumn>
+                    <GridColumn Field="Ten_Kho" Title="Kho" Width="240px"></GridColumn>
+                    <GridColumn Field="" Title=""></GridColumn>
+                }
+            </GridColumns>
+        </TelerikGrid>
+    </div>
+</div>
+
+@if (r_bIs_Show_Edit)
+{
+    <F2009_3_Kho_User_Edit r_iAuto_ID="@r_iAuto_ID" m_iKho_ID="@m_iKho_ID" OnClose="@Close_Edit"></F2009_3_Kho_User_Edit>
+}
+
+@if (r_bIs_Show_Help_Guide)
+{
+    <FCommon_Help_Guide m_strFCode="@r_strActive_Function_Code" OnClose="@Close_Helpguide"></FCommon_Help_Guide>
+}
+
+@code {
+    private List<CDM_Kho> m_arrKho = new();
+    private List<CDM_Kho_User> v_arrData = new();
+    private TelerikGrid<CDM_Kho_User> grdData = new();
+    private long m_iKho_ID;
+
+    protected override void Init_Data()
+    {
+        m_arrKho = new CDM_Kho_Controller().FQ_109_Kho_sp_sel_List();
+        if (m_arrKho.Count > 0)
+            m_iKho_ID = m_arrKho[0].Auto_ID;
+    }
+
+    protected override void Load_Data()
+    {
+        Format_Grid(grdData);
+        if (m_iKho_ID > 0)
+            v_arrData = new CDM_Kho_User_Controller().FQ_110_KU_sp_sel_List_By_Kho_ID(m_iKho_ID);
+        else
+            v_arrData = new List<CDM_Kho_User>();
+
+        Hide_Filter_Row(grdData);
+        Hide_Pageable(grdData);
+    }
+
+    private void OnKhoChanged(object p_value)
+    {
+        m_iKho_ID = CUtility.Convert_To_Int64(p_value);
+        Load_Data_Init();
+    }
+
+    protected override void Delete_Data_Entry(long p_iAuto_ID)
+    {
+        CDM_Kho_User v_objData = v_arrData.FirstOrDefault(v_objItem => v_objItem.Auto_ID == p_iAuto_ID);
+        if (v_objData != null)
+            r_strDelete_Key = v_objData.Ma_Dang_Nhap + " - " + v_objData.Kho_ID.ToString();
+
+        new CDM_Kho_User_Controller().FQ_110_KU_sp_del_Delete_By_ID(p_iAuto_ID, r_strActive_User_Name, r_strActive_Function_Code);
+    }
+}
